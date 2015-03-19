@@ -1,6 +1,8 @@
 <?php namespace Xavrsl\Ldap;
 
 use Illuminate\Support\Facades\Cache;
+use ldap_search;
+
 
 class Directory {
 
@@ -37,7 +39,7 @@ class Directory {
 	 *
 	 * @var string
 	 */
-	protected $booleanOperator = '|';
+	protected $booleanOperator = '&';
 
 	/**
 	 * Search results.
@@ -383,7 +385,8 @@ class Directory {
 		{
 			throw new \Exception('No Base DN in config');
 		}
-		$dn = 'ou=' . $this->getOrganisationUnit() .','. $this->getConfig('basedn');
+		//$dn = 'ou=' . $this->getOrganisationUnit() .','. $this->getConfig('basedn');
+		$dn = $this->getConfig('basedn');
 
 		$filter = '(' . $this->booleanOperator;
 		foreach($this->requestedEntries as $requestedEntry) {
@@ -393,11 +396,10 @@ class Directory {
 
 		$attributes = $this->getConfigAttributes();
 		$key = $this->getConfig('key');
-
+		
 		$sr = ldap_search($this->connection->getResource(), $dn, $filter, $attributes);
 		// return an array of CNs
 		$entries = ldap_get_entries($this->connection->getResource(), $sr);
-
 		for($i = 0; $i < $entries['count']; $i++) {
 			// Store in cache
 			$this->store($this->format($entries[$i][$key]), $entries[$i]);
@@ -445,31 +447,33 @@ class Directory {
 	 * @return array
 	 */
 	protected function output() {
+		$output = array();
 		if(count($this->results) == 1 && count($this->attributes) == 1) {
 			$attr = $this->attributes[0];
-			$result = array_shift($this->results);
+			$result = $this->formatOutput(array_shift($this->results));
 			
 			if (!array_key_exists($attr, $result)) return false;
-
-			return $this->format($result[$attr]);
+			$output = $this->format($result[$attr], $attr);
 		}
 		elseif(count($this->results) == 1 && count($this->attributes) > 1) {
 			$output = array();
 			$u = reset($this->results);
 			foreach($this->attributes as $a){
-				$output[$a] = array_key_exists($a, $u) ? $this->format($u[$a]) : null;
+				$output[$a] = array_key_exists($a, $u) ? $this->format($u[$a], $a) : null;
 			}
-			return $output;
+			$output = $this->formatOutput($output);
 		}
 		else {
 			$output = array();
 			foreach($this->results as $n => $u) {
 				foreach($this->attributes as $a){
-					$output[$n][$a] = array_key_exists($a, $u) ? $this->format($u[$a]) : null;
+					$output[$n][$a] = array_key_exists($a, $u) ? $this->format($u[$a], $a) : null;
 				}
 			}
-			return $output;
+			$output = $this->formatOutput($output);
 		}
+		
+		return $output;
 	}
 
 	/**
@@ -480,15 +484,18 @@ class Directory {
 	 * @var array|string  $attributes
 	 * @return mixed
 	 **/
-	protected function format($attributes)
+	protected function format($attributes, $key = null)
 	{
+		$keep_as_array = ['memberof'];
 		if(is_array($attributes))
 		{
 			// Typical Ldap attribute returned array is :
 			// ['count' => 1, 0 => 'value']
-			if(isset($attributes['count']) AND $attributes['count'] === 1)
-			{
-				return $attributes[0];
+			if(!$key || !in_array($key, $keep_as_array)) {
+				if(isset($attributes['count']) AND $attributes['count'] === 1)
+				{
+					return $attributes[0];
+				}
 			}
 		}
 		return $attributes;
@@ -502,6 +509,29 @@ class Directory {
 	 */
 	protected function isAssoc(array $array) {
 		return (bool)count(array_filter(array_keys($array), 'is_string'));
+	}
+
+	protected function formatOutput($attributes) {
+		if(isset($attributes['memberof'])) {
+			if(is_array($attributes['memberof'])) {
+				$arr = ['count' => $attributes['memberof']['count']];
+
+				foreach($attributes['memberof'] as $key=>$row) {
+					if($key === 'count') {
+						continue;
+					}
+					$arr[$key] = [];
+					$parts = explode(',', $row);
+					foreach($parts as $p) {
+						$t = explode('=', $p);
+						$arr[$key][$t[0]] = $t[1];
+					}
+				}
+				$attributes['memberof'] = $arr;
+			}
+		}
+		
+		return $attributes;
 	}
 
 }
