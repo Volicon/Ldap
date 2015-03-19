@@ -1,9 +1,13 @@
 {
-    "name": "xavrsl/ldap",
+    "name": "volicon/ldap",
     "description": "Add Ldap Search possibilities to Laravel",
     "keywords": ["laravel", "ldap", "search"],
 		"license": "MIT",
     "authors": [
+    	{
+            "name": "Nadav Vinik",
+            "email": "nadav.v@volicon.com"
+        },
         {
             "name": "Xavier Roussel",
             "email": "contact@xavrsl.fr"
