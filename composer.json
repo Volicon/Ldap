@@ -14,9 +14,9 @@
         }
     ],
     "require": {
-        "php": ">=5.4.0",
+        "php": ">=5.5.0",
         "ext-ldap": "*",
-        "illuminate/support": "4.x"
+        "illuminate/support": "5.x"
     },
 		"require-dev": {
 	      "orchestra/testbench": "2.1.*"
