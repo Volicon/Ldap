@@ -467,11 +467,12 @@ class Directory {
 		else {
 			$output = array();
 			foreach($this->results as $n => $u) {
+				$item = [];
 				foreach($this->attributes as $a){
-					$output[$n][$a] = array_key_exists($a, $u) ? $this->format($u[$a], $a) : null;
+					$item[$a] = array_key_exists($a, $u) ? $this->format($u[$a], $a) : null;
 				}
+				$output[$n] = $this->formatOutput($item)
 			}
-			$output = $this->formatOutput($output);
 		}
 		
 		return $output;
