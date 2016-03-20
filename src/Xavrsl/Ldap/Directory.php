@@ -189,6 +189,7 @@ class Directory {
 	public function find($organisationUnit)
 	{
 		$this->setOrganisationUnit($organisationUnit);
+		return $this;
 	}
 
 	/**
